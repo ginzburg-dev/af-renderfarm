@@ -23,14 +23,15 @@ class QualityPreset(Enum):
 
 def get_render_settings(quality: QualityPreset) -> dict:
     return (
-        f'setAttr redshiftOptions.unifiedAdaptiveErrorThreshold {THRESHOLDS[quality.value]};' +
-        'setAttr redshiftOptions.denoiseEngine 0;' +
-        'setAttr rsAov_Cryptomatte.enabled 0;' +
-        'setAttr rsAov_Custom.enabled 0;' +
-        'setAttr rsAov_Depth.enabled 0;' +
-        'setAttr rsAov_PuzzleMatte.enabled 0;' +
-        'setAttr rsAov_PuzzleMatte1.enabled 0;' +
-        'setAttr rsAov_WorldPosition.enabled 0;'
+        f'setAttr redshiftOptions.unifiedAdaptiveErrorThreshold {THRESHOLDS[quality.value]};'
+        f'setAttr "redshiftOptions.unifiedRandomizePattern" 1;'
+        f'setAttr redshiftOptions.denoiseEngine 0;'
+        f'setAttr rsAov_Cryptomatte.enabled 0;'
+        f'setAttr rsAov_Custom.enabled 0;'
+        f'setAttr rsAov_Depth.enabled 0;'
+        f'setAttr rsAov_PuzzleMatte.enabled 0;'
+        f'setAttr rsAov_PuzzleMatte1.enabled 0;'
+        f'setAttr rsAov_WorldPosition.enabled 0;'
     )
 
 
@@ -59,17 +60,21 @@ if __name__ == "__main__":
     config = AFConfig()
     arg_parser = build_argparser()
     args = arg_parser.parse_args()
-    
+
+    proj_dir = args.project_dir or config.working_directory
+    out_dir = args.output or config.output_image_dir
+
+    if not out_dir:
+        raise ValueError("Output directory must be specified via --output or AF_OUTPUT_IMAGE_DIR env variable.")
+
     if args.quality:
         quality = [QualityPreset[args.quality.upper()]]
     else:
-        quality = [q for q in QualityPreset]
-    
-    job_name = f"{os.path.basename(os.path.splitext(args.scene)[0])}-render-{q.name.lower()}" or args.job_name
-    proj_dir = args.project_dir or config.working_directory
-    out_dir = os.path.join(args.output.strip('"') or config.output_image_dir.strip('"'), args.job_name)
-    
+        quality = sorted([q for q in QualityPreset], key=lambda x: x.value, reverse=True)
+
     for q in quality:
+        job_name = f"{os.path.basename(os.path.splitext(args.scene)[0])}-render-{q.name.lower()}" or args.job_name
+        out_dir = os.path.join(out_dir.strip('"'), job_name)
         submit_maya_redshift_job(
             job_name=job_name,
             project_dir=proj_dir,

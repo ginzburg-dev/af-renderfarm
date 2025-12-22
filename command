@@ -1,0 +1,1 @@
+wrappers\env.bat python app\submit_maya_redshift_dataset.py --scene "c:\Ginzburg\Production\dataset\MG_noise_dataset\src\scenes\MG071_590\MG071_590.ma" --start 5 --end 17
