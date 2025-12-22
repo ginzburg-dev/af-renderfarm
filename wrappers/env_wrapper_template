@@ -1,0 +1,8 @@
+call ".venv\Scripts\activate.bat"
+
+set AF_WORKING_DIRECTORY=""
+set MAYA_REDSHIFT_WRAPPER=""
+set AF_OUTPUT_IMAGE_DIR=""
+set PATH=%MAYA_RENDER_EXEC%;%PATH%
+
+call %*
