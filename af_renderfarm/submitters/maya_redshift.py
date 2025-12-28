@@ -101,7 +101,7 @@ def submit_maya_redshift_job(
     output_path: str,
     start_frame: int,
     end_frame: int,
-    frames_per_task: int = 1,
+    frames_per_task: int = 5,
     pre_render_script: str = "",
     log_level: int = 2,
 ) -> None:

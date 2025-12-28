@@ -5,12 +5,15 @@ import os
 from af_renderfarm.config import AFConfig
 from af_renderfarm.submitters.maya_redshift import submit_maya_redshift_job
 
+OPTIX_DENOISE = 3
+DENOISE_OFF = 0
+
 THRESHOLDS = {
-    0: 0.001,
-    1: 0.015,
-    2: 0.025,
-    3: 0.1,
-    4: 0.3,
+    0: (0.001, 2000, True),
+    1: (0.015, 2000, False),
+    2: (0.025, 20900, False),
+    3: (0.1, 2000, False),
+    4: (0.3, 2000, False),
 }
 
 class QualityPreset(Enum):
@@ -22,10 +25,12 @@ class QualityPreset(Enum):
 
 
 def get_render_settings(quality: QualityPreset) -> dict:
+    denoise_engine = OPTIX_DENOISE if THRESHOLDS[quality.value][2] else DENOISE_OFF
     return (
-        f'setAttr redshiftOptions.unifiedAdaptiveErrorThreshold {THRESHOLDS[quality.value]};'
+        f'setAttr redshiftOptions.unifiedAdaptiveErrorThreshold {THRESHOLDS[quality.value][0]};'
         f'setAttr "redshiftOptions.unifiedRandomizePattern" 1;'
-        f'setAttr redshiftOptions.denoiseEngine 0;'
+        f'setAttr "redshiftOptions.unifiedMaxSamples" {THRESHOLDS[quality.value][1]};'
+        f'setAttr redshiftOptions.denoiseEngine {denoise_engine};'
         f'setAttr rsAov_Cryptomatte.enabled 0;'
         f'setAttr rsAov_Custom.enabled 0;'
         f'setAttr rsAov_Depth.enabled 0;'
@@ -49,7 +54,7 @@ def build_argparser() -> argparse.ArgumentParser:
         default="")
     parser.add_argument("--project_dir", type=str, help="Maya project directory")
     parser.add_argument("--output", type=str, help="Output directory for rendered images")
-    parser.add_argument("--frames-per-task", type=int, default=1, help="Number of frames per task")
+    parser.add_argument("--frames-per-task", type=int, default=5, help="Number of frames per task")
     parser.add_argument("--pre-render-script", type=str, default="", help="Path to pre-render script")
     parser.add_argument("--log-level", type=int, default=2, help="Log level for Redshift renderer")
 
@@ -74,12 +79,12 @@ if __name__ == "__main__":
 
     for q in quality:
         job_name = f"{os.path.basename(os.path.splitext(args.scene)[0])}-render-{q.name.lower()}" or args.job_name
-        out_dir = os.path.join(out_dir.strip('"'), job_name)
+        output_dir = os.path.join(out_dir.strip('"'), job_name)
         submit_maya_redshift_job(
             job_name=job_name,
             project_dir=proj_dir,
             scene_file=args.scene,
-            output_path=out_dir,
+            output_path=output_dir,
             start_frame=args.start,
             end_frame=args.end,
             frames_per_task=args.frames_per_task,
